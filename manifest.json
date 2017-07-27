@@ -1,0 +1,44 @@
+
+{
+  "manifest_version": 2,
+  "name": "SnapTab",
+  "version": "0.1",
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": ["jquery-3.2.1.min.js", "content.js"]
+    }
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "permissions": [
+    "storage", "background"
+  ],
+  "browser_action": {
+    "default_title": "SnapTab",
+    "default_popup": "popup.html"
+  }/*,
+  "browser_action": {
+    "default_icon": "icon.png"
+  }
+  */
+}
+
+/*
+{
+  "name": "Hello World!",
+  "description": "SnapTab",
+  "version": "0.1",
+  "manifest_version": 2,
+  "app": {
+    "background": {
+      "scripts": ["background.js"]
+    }
+  }//,
+  //"icons": { "16": "calculator-16.png", "128": "calculator-128.png" }
+}*/
