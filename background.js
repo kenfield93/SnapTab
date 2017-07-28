@@ -48,6 +48,19 @@ function initListener() {
                     chrome.tabs.create({"url": url});
                 })
             }
+            if( msg.method == 'deleteTmpTab'){
+                var indexOfTabToDel = 0;
+                var newArray = [];
+                for( ; indexOfTabToDel < tabSessionsToSave.length; indexOfTabToDel++){
+                    if( tabSessionsToSave[indexOfTabToDel].url == msg.url)
+                        break;
+                    newArray.push(tabSessionsToSave[indexOfTabToDel]);
+                }
+                newArray.concat(tabSessionsToSave.slice(indexOfTabToDel+1));
+                tabSessionsToSave = newArray;
+                alert(JSON.stringify(tabSessionsToSave));
+                sendResponse({status:200, queueLen: tabSessionsToSave.length});
+            }
             if(msg.method == 'deleteSession'){
                 chrome.storage.sync.remove(msg.name, function(){
                     if(chrome.runtime.lastError)

@@ -1,87 +1,57 @@
 /**
  * Created by kyle on 6/21/17.
  */
-//var firstHref =  $(location).attr('href');
-/*function createAddTabClickHandler() {
-    var currentTabsList;
-    var currTabLog = document.getElementById('currentSessionQueue');
-    return
-    */
-function addTabClickHandler(e) {
+function compose(f, g){
+    return function (x){
+        f(g(x));
+    };
+}
+
+//normal js doesn't have events like Node so dirrectly pass in function to act when new tab is added to queue
+function hookAddTabEvents(onTabEnqueFunc) {
+    return function addTabClickHandler(e) {
 
         var query = {active: true, currentWindow: true};
-        function callback(tabs) {
+        function addTab(tabs) {
             var currentTab = tabs[0]; // there will be only one in this array
-            chrome.tabs.sendMessage(currentTab.id, {greeting: "hello"}, function (response) {
-                /*
-                if (response) {
-
-                    console.log("ey m8ee");
-                    console.log(response.tabQueueLen);
-                    if (response.tabQueueLen === 1) {
-                        currentTabsList = document.createElement('ul');
-                        currTabLog.appendChild(currentTabsList);
-                    }
-                    displayTabInPopup(response.url, response.title, currentTabsList);
-                }
-                else{
-                    console.log("Error sending message or some weak shit like that ");
-                    console.log(chrome.runtime.lastError);
-                }
-                */
+            chrome.tabs.sendMessage(currentTab.id, {method: 'addTab'}, function (response) {
+                onTabEnqueFunc();
             });
         }
-
-        chrome.tabs.query(query, callback);
-/*
-        function displayTabInPopup(url, title, parentNode) {
-            console.log('displayTabInPopup');
-            console.log(url);
-            console.log(title);
-            console.log(parentNode);
-            var tabSessionDisplayQueue = document.getElementById('currentSessionQueue');
-            var newLi = document.createElement('li');
-            newLi.appendChild(document.createTextNode(title));
-            parentNode.appendChild(newLi);
-        }
+        chrome.tabs.query(query, addTab);
     }
-    */
 }
-//TODO:
-// ISsue just adding new tab to display when added since each page has its own popup, each new popup will need the whole list again
-// gonna have to do something similar to displayTabSessions
 
+var redisplayCurrTabSession = compose(displayCurrTabSession, function () {
+    var ulNode = document.getElementById('currentSessionQueueList').innerHTML = "";
+    return hookBtnHandler;
+});
 
-function saveTabSessionClickHandler(e){
-    //get name to try and save
-    var name = document.getElementById('sessionName').value;
-    console.log(name);
-
-    //for now just send a msg to background w/ name to save session
-    // later on can worry about if name exists and if they wanna override or pick new name
-    chrome.runtime.sendMessage({"method": "saveSession", "name": name}, function(response){
-
-    });
+function hookBtnHandler(btnParent, url)
+{
+    return function (e) {
+            chrome.runtime.sendMessage({method: "deleteTmpTab", url: url}, function(response){
+                    if(response && response.status == 200){
+                        btnParent.parentNode.removeChild(btnParent);
+                    }
+            });
+    };
 }
-// TODO:
-// might wanna recall this on 'refocusing' of popup. Like if you add a tab, and then go to 2 new pages and add them, when you go back to OG page it should show 2 new pages
-// Create buttons instead of just <li> title </li> so they can be deleted
-function  displayCurrTabSession(){
-    console.log("display Called");
+function  displayCurrTabSession(hookBtnHandler){
     var currTabList = document.getElementById('currentSessionQueueList');
     //var currentTabsList = document.createElement('ul');
     chrome.runtime.sendMessage({method: "getTmpSession"}, function(response){
         if(response && response.length > 0){
             response.map(function(ele){
                 var liNode = document.createElement('li');
-                console.log(ele.title);
-                liNode.appendChild(document.createTextNode(ele.title));
+                var btn = document.createElement('button');
+                btn.addEventListener('dblclick', hookBtnHandler(liNode, ele.url));
+                btn.appendChild(document.createTextNode(ele.title));
+                liNode.appendChild(btn);
                 currTabList.appendChild(liNode);
             });
         }
-
     });
-
 }
 function displayTabSessions(displayFn) {
     chrome.storage.sync.get(null, function (items) {
@@ -93,14 +63,11 @@ function displayTabSessions(displayFn) {
                 sessionObjs.push({sessionName: sessionName, sessions: session});
             }
         }
-        //console.log(sessionObjs);
         displayFn(sessionObjs);
-       // setTimeout(sendResponse(sessionObjs), 0);
     });
 };
-var nameOfTabSessionList = "tabSessionNames";
-
 /*
+var nameOfTabSessionList = "tabSessionNames";
 function loadFromLocalStorage(key, valueHandlerCb) {
     chrome.storage.sync.get(key, function (value) {
         if (!value) return valueHandlerCb(new Error("TabSessionList " + nameOfTabSessionList + " don't exist bitch"));
@@ -144,7 +111,16 @@ function displayTabs(sessions){
     });
 }
 
-function deleteSessions(savedSessionDiv) {
+function saveTabSessionClickHandler(e){
+    var name = document.getElementById('sessionName').value;
+    //for now just send a msg to background w/ name to save session
+    // later on can worry about if name exists and if they wanna override or pick new name
+    chrome.runtime.sendMessage({"method": "saveSession", "name": name}, function(response){
+
+    });
+}
+
+function deleteSessionsClickHandler(savedSessionDiv) {
 
     var turnDeleteSessionOn = true;
 
@@ -219,12 +195,13 @@ function deleteSessions(savedSessionDiv) {
 // `DOMContentLoaded` event on the document, and adding your listeners to
 // specific elements when it triggers.
 document.addEventListener('DOMContentLoaded', function () {
-   // var addTabClickHandle = createAddTabClickHandler();
-    document.getElementById('addTab').addEventListener('click', addTabClickHandler);
-    document.getElementById('saveSession').addEventListener('click', saveTabSessionClickHandler);
+    var addTabClickHandle = hookAddTabEvents(redisplayCurrTabSession);
     displayTabSessions(displayTabs);
-    displayCurrTabSession();
-    document.getElementById('deleteSessions').addEventListener('click', deleteSessions(document.getElementById('savedSessions')));
+    displayCurrTabSession(hookBtnHandler);
+
+    document.getElementById('addTab').addEventListener('click', addTabClickHandle);
+    document.getElementById('saveSession').addEventListener('click', saveTabSessionClickHandler);
+    document.getElementById('deleteSessions').addEventListener('click', deleteSessionsClickHandler(document.getElementById('savedSessions')));
 
     //main();
 });
