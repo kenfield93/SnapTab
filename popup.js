@@ -2,19 +2,55 @@
  * Created by kyle on 6/21/17.
  */
 //var firstHref =  $(location).attr('href');
+/*function createAddTabClickHandler() {
+    var currentTabsList;
+    var currTabLog = document.getElementById('currentSessionQueue');
+    return
+    */
+function addTabClickHandler(e) {
 
-function addTabClickHandler(e){
-    var query = { active: true, currentWindow: true };
+        var query = {active: true, currentWindow: true};
+        function callback(tabs) {
+            var currentTab = tabs[0]; // there will be only one in this array
+            chrome.tabs.sendMessage(currentTab.id, {greeting: "hello"}, function (response) {
+                /*
+                if (response) {
 
-    function callback(tabs) {
-        var currentTab = tabs[0]; // there will be only one in this array
-        chrome.tabs.sendMessage(currentTab.id, {greeting: "hello"},  function(response) {
-            if(response)
-                displayTabInPopup(response);
-        });
+                    console.log("ey m8ee");
+                    console.log(response.tabQueueLen);
+                    if (response.tabQueueLen === 1) {
+                        currentTabsList = document.createElement('ul');
+                        currTabLog.appendChild(currentTabsList);
+                    }
+                    displayTabInPopup(response.url, response.title, currentTabsList);
+                }
+                else{
+                    console.log("Error sending message or some weak shit like that ");
+                    console.log(chrome.runtime.lastError);
+                }
+                */
+            });
+        }
+
+        chrome.tabs.query(query, callback);
+/*
+        function displayTabInPopup(url, title, parentNode) {
+            console.log('displayTabInPopup');
+            console.log(url);
+            console.log(title);
+            console.log(parentNode);
+            var tabSessionDisplayQueue = document.getElementById('currentSessionQueue');
+            var newLi = document.createElement('li');
+            newLi.appendChild(document.createTextNode(title));
+            parentNode.appendChild(newLi);
+        }
     }
-    chrome.tabs.query(query, callback);
+    */
 }
+//TODO:
+// ISsue just adding new tab to display when added since each page has its own popup, each new popup will need the whole list again
+// gonna have to do something similar to displayTabSessions
+
 
 function saveTabSessionClickHandler(e){
     //get name to try and save
@@ -24,11 +60,27 @@ function saveTabSessionClickHandler(e){
     //for now just send a msg to background w/ name to save session
     // later on can worry about if name exists and if they wanna override or pick new name
     chrome.runtime.sendMessage({"method": "saveSession", "name": name}, function(response){
-        console.log("i dont want to be like u");
+
     });
 }
+// TODO:
+// might wanna recall this on 'refocusing' of popup. Like if you add a tab, and then go to 2 new pages and add them, when you go back to OG page it should show 2 new pages
+// Create buttons instead of just <li> title </li> so they can be deleted
+function  displayCurrTabSession(){
+    console.log("display Called");
+    var currTabList = document.getElementById('currentSessionQueueList');
+    //var currentTabsList = document.createElement('ul');
+    chrome.runtime.sendMessage({method: "getTmpSession"}, function(response){
+        if(response && response.length > 0){
+            response.map(function(ele){
+                var liNode = document.createElement('li');
+                console.log(ele.title);
+                liNode.appendChild(document.createTextNode(ele.title));
+                currTabList.appendChild(liNode);
+            });
+        }
 
-function displayTabInPopup(){
+    });
 
 }
 function displayTabSessions(displayFn) {
@@ -48,12 +100,14 @@ function displayTabSessions(displayFn) {
 };
 var nameOfTabSessionList = "tabSessionNames";
 
+/*
 function loadFromLocalStorage(key, valueHandlerCb) {
     chrome.storage.sync.get(key, function (value) {
         if (!value) return valueHandlerCb(new Error("TabSessionList " + nameOfTabSessionList + " don't exist bitch"));
         valueHandlerCb( value);
     });
 }
+*/
 
 function displayTabs(sessions){
     sessions.forEach(function(ele) {
@@ -165,9 +219,11 @@ function deleteSessions(savedSessionDiv) {
 // `DOMContentLoaded` event on the document, and adding your listeners to
 // specific elements when it triggers.
 document.addEventListener('DOMContentLoaded', function () {
+   // var addTabClickHandle = createAddTabClickHandler();
     document.getElementById('addTab').addEventListener('click', addTabClickHandler);
     document.getElementById('saveSession').addEventListener('click', saveTabSessionClickHandler);
     displayTabSessions(displayTabs);
+    displayCurrTabSession();
     document.getElementById('deleteSessions').addEventListener('click', deleteSessions(document.getElementById('savedSessions')));
 
     //main();

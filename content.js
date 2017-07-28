@@ -16,13 +16,20 @@ console.log(typeof firstHref);
 /*listens for popup */
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-            var query = {method: "addTab", url: firstHref, title: document.title};
+      //  var port = chrome.runtime.connect({name: sender.id});
+      //  port.postMessage({joke: "Knock knock"});
+        var query = {method: "addTab", url: firstHref, title: document.title};
         console.log("request" + JSON.stringify(request));
         console.log("sender " + JSON.stringify(sender));
-            chrome.runtime.sendMessage(query,function(status){
-              sendResponse({url: firstHref, title: document.title});
-            });
-
+        chrome.runtime.sendMessage(query,function(response){
+              if( response.status == 200) {
+                  sendResponse( {url: firstHref, title: document.title, tabQueueLen: response.queueLen});
+              }
+        });
+        /* Very Important. returning true lets callee know you're going to call sendResponse asynch. Otherwise channel/port lifetime ends and it wont work
+         https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent
+         */
+        //return true;
     });
 
 /*

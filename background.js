@@ -26,8 +26,8 @@ function initListener() {
             //openTabSession(msg);
             */
             if( msg.method == 'addTab') {
-                addTab({url: msg.url, title: msg.title});
-                sendResponse({code: 200});
+                var size = addTab({url: msg.url, title: msg.title});
+                sendResponse({status: 200, queueLen: size});
             }
             if( msg.method == 'saveSession') {
                 saveToLocalStorage(msg.name, tabSessionsToSave, true);
@@ -37,6 +37,11 @@ function initListener() {
                 var getSessionsPromise = loadTabs();
                // alert(getSessionsPromise.toString);
                 sendResponse(getSessionsPromise);
+            }
+            if( msg.method == 'getTmpSession'){
+                //alert("JOJO");
+                //sends copy of tabSessionsToSave
+                sendResponse(tabSessionsToSave);
             }
             if( msg.method == 'openTabs'){
                 msg.urls.map(function(url){
@@ -89,6 +94,7 @@ chrome.runtime.addTabEvent.addListener(
     function addTab(tab) {
         // validation if need be
         tabSessionsToSave.push(tab);
+        return tabSessionsToSave.length;
     }
     function deleteTab(tab, tabArray) {
         var tempTab;
