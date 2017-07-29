@@ -3,46 +3,54 @@
  */
 
 console.dir(chrome.storage);
-var firstHref =  $(location).attr('href');
-console.log(document.title)
-console.log(firstHref);
-console.log(typeof firstHref);
+var currentUrl =  $(location).attr('href');
+//console.log(document.title)
+//console.log(firstHref);
+//console.log(typeof firstHref);
 //chrome.storage.sync.clear();
 
 
-//chrome.storage.sync.get('rich', function(item){console.log("suck a toe"); console.log(item);});
+function addTabToSessionQueue(responseFunc) {
+    //  var port = chrome.runtime.connect({name: sender.id});
+    //  port.postMessage({test: "Testing port.postMessage"});
+    var query = {method: "addTab", url: currentUrl, title: document.title};
+    chrome.runtime.sendMessage(query, responseFunc);
 
+    /* Very Important. returning true lets callee know you're going to call sendResponse asynch. Otherwise channel/port lifetime ends and it wont work
+     https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent
+     */
+    //return true;
+};
 
-/*listens for popup */
-chrome.runtime.onMessage.addListener(
-    function(request, sender, sendResponse) {
-      //  var port = chrome.runtime.connect({name: sender.id});
-      //  port.postMessage({joke: "Knock knock"});
-        var query = {method: "addTab", url: firstHref, title: document.title};
-        console.log("request" + JSON.stringify(request));
-        console.log("sender " + JSON.stringify(sender));
-        chrome.runtime.sendMessage(query,function(response){
-              if( response.status == 200) {
-                  sendResponse( {url: firstHref, title: document.title, tabQueueLen: response.queueLen});
-              }
-        });
-        /* Very Important. returning true lets callee know you're going to call sendResponse asynch. Otherwise channel/port lifetime ends and it wont work
-         https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent
-         */
-        //return true;
-    });
+function butImNotAWraper(event){alert(JSON.stringify(event)); addTabToSessionQueue();}
+/*listens to popup for user adding tab manually*/
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
 
-/*
-window.addEventListener("unload", function(){
-    console.log("titts ");
-    chrome.runtime.sendMessage([{"url": "https://google.com"},{"url": firstHref}], function(response) {
-        console.log("obey me");
-        console.log(response);
-    });
-  //  chrome.storage.sync.set({'link1': firstHref }, function(){console.log("Hank Hill");});
-  //  chrome.storage.sync.get('link1', function(item){console.log(item);});
+    if( request.method == 'addTabManually') {
+        var tabManuallyAddedResponse = function (response) {
+            if (response.status == 200) {
+                sendResponse({url: currentUrl, title: document.title, tabQueueLen: response.queueLen});
+            }
+        };
+        addTabToSessionQueue(tabManuallyAddedResponse);
+    }
+    //TODO unload doesn't differentiate between things like closing tab and refresh, and seems no available way to check
+    // gonna decide if i want a start/stop or just start, where you click the button and enter the name and exit chrome, it then creates new session
+    // if issue with saving new session try and save to local storage under name and create session on next open tab. Otherwise would have to do it bitch ass way of
+    // saving every tab and deleting it when exited normally, and delete all tabs that were open when chrome was closed ( assuming the user follow steps to save them)
+    //TODO want to broadcast these 2 messages to every open tab, unlike addTabManually
+    else if(request.method == 'startAddTabOnDelete'){
+        window.addEventListener("unload", butImNotAWraper);
+    }
+    else if(request.method == 'stopAddTabOnDelete'){
+        window.removeEventListener('unload', butImNotAWraper);
+    }
+
 });
-*/
+
+
+//window.addEventListener("unload", butImNotAWraper);
+
 
 /*
 chrome.app.runtime.onLaunched.addListener(function() {

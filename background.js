@@ -5,7 +5,7 @@ var debug = (function (isDebugOn){
     var debug = isDebugOn;
     return function (msg){
         if(debug)
-            console.log(msg);
+            alert(JSON.stringify(msg));
     };
 })(true);
 
@@ -20,11 +20,7 @@ function initListener() {
 ///////////////////////////////
     chrome.runtime.onMessage.addListener(
         function (msg, sender, sendResponse) {
-            /*
-            console.log("msg: %j ", msg)
-            alert(JSON.stringify(msg));
-            //openTabSession(msg);
-            */
+
             if( msg.method == 'addTab') {
                 var size = addTab({url: msg.url, title: msg.title});
                 sendResponse({status: 200, queueLen: size});
@@ -56,9 +52,7 @@ function initListener() {
                         break;
                     newArray.push(tabSessionsToSave[indexOfTabToDel]);
                 }
-                newArray.concat(tabSessionsToSave.slice(indexOfTabToDel+1));
-                tabSessionsToSave = newArray;
-                alert(JSON.stringify(tabSessionsToSave));
+                tabSessionsToSave = newArray.concat(tabSessionsToSave.slice(indexOfTabToDel+1));
                 sendResponse({status:200, queueLen: tabSessionsToSave.length});
             }
             if(msg.method == 'deleteSession'){

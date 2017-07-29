@@ -14,7 +14,7 @@ function hookAddTabEvents(onTabEnqueFunc) {
         var query = {active: true, currentWindow: true};
         function addTab(tabs) {
             var currentTab = tabs[0]; // there will be only one in this array
-            chrome.tabs.sendMessage(currentTab.id, {method: 'addTab'}, function (response) {
+            chrome.tabs.sendMessage(currentTab.id, {method: 'addTabManually'}, function (response) {
                 onTabEnqueFunc();
             });
         }
