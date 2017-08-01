@@ -112,12 +112,20 @@ function displayTabs(sessions){
 }
 
 function saveTabSessionClickHandler(e){
-    var name = document.getElementById('sessionName').value;
+    var name = document.getElementById('sessionName'); //.value
+    if( name.style.display ) {
+        name.style.display = '';
+        return;
+    }
+    var sessionName = name.value;
+   // this.prompt("Enter session Name");
     //for now just send a msg to background w/ name to save session
     // later on can worry about if name exists and if they wanna override or pick new name
-    chrome.runtime.sendMessage({"method": "saveSession", "name": name}, function(response){
-
+    chrome.runtime.sendMessage({"method": "saveSession", "name": sessionName}, function(response){
+        //todo check status and then print error message or just hide
+        name.style.display = 'none';
     });
+
 }
 
 function deleteSessionsClickHandler(savedSessionDiv) {
@@ -155,6 +163,10 @@ function deleteSessionsClickHandler(savedSessionDiv) {
             element.parentNode.parentNode.removeChild(element.parentNode);
         };
         var deleteSessionFromChromeMemory = function(sessionName){
+            if(! sessionName){
+                alert("tab session must have a unique name");
+                return
+            }
             chrome.runtime.sendMessage({"method": "deleteSession", "name": sessionName}, function(status){
                 console.log(status)
             });
