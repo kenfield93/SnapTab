@@ -211,6 +211,7 @@ document.addEventListener('DOMContentLoaded', function () {
     displayTabSessions(displayTabs);
     displayCurrTabSession(hookBtnHandler);
 
+    document.getElementById('saveOnClose').addEventListener('click', function(){ chrome.runtime.sendMessage({method: "setAddTabOnDeleteActive"}) });
     document.getElementById('addTab').addEventListener('click', addTabClickHandle);
     document.getElementById('saveSession').addEventListener('click', saveTabSessionClickHandler);
     document.getElementById('deleteSessions').addEventListener('click', deleteSessionsClickHandler(document.getElementById('savedSessions')));

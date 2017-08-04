@@ -9,6 +9,8 @@ var debug = (function (isDebugOn){
     };
 })(true);
 
+var saveOnDelete = false;
+
 function initListener() {
 
     chrome.browserAction.onClicked.addListener(function (tab) {
@@ -24,6 +26,13 @@ function initListener() {
             if( msg.method == 'addTab') {
                 var size = addTab({url: msg.url, title: msg.title});
                 sendResponse({status: 200, queueLen: size});
+            }
+            if( msg.method == 'isAddTabOnDeleteActive'){
+                alert("Shit balls");
+                sendResponse({status: 200, isSet: saveOnDelete});
+            }
+            if( msg.method == 'setAddTabOnDeleteActive'){
+                saveOnDelete = true;
             }
             if( msg.method == 'saveSession') {
                 saveToLocalStorage(msg.name, tabSessionsToSave, true);

@@ -8,12 +8,17 @@ var currentUrl =  $(location).attr('href');
 //console.log(firstHref);
 //console.log(typeof firstHref);
 //chrome.storage.sync.clear();
+var DEFAULT_PAGE = "Google Home Page";
 
 
 function addTabToSessionQueue(responseFunc) {
+    console.log("addTabToSessionQueue");
     //  var port = chrome.runtime.connect({name: sender.id});
     //  port.postMessage({test: "Testing port.postMessage"});
     var query = {method: "addTab", url: currentUrl, title: document.title};
+    if(!query.title || query.title == " "){
+        query.title = DEFAULT_PAGE
+    }
     chrome.runtime.sendMessage(query, responseFunc);
 
     /* Very Important. returning true lets callee know you're going to call sendResponse asynch. Otherwise channel/port lifetime ends and it wont work
@@ -22,33 +27,56 @@ function addTabToSessionQueue(responseFunc) {
     //return true;
 };
 
-function butImNotAWraper(event){alert(JSON.stringify(event)); addTabToSessionQueue();}
+/*
+ todo refactor or curry this somehow so sendResponse is w/ in scope
+ */
+function addTabResponse (response) {
+    console.log("addTabResponse");
+    console.log(response);
+    if (response.status == 200) {
+        sendResponse({url: currentUrl, title: document.title, tabQueueLen: response.queueLen});
+    }
+};
+
+
+function addTabToSessionQueueAndResponse(){
+    return addTabToSessionQueue(addTabResponse);
+}
+
 /*listens to popup for user adding tab manually*/
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
+function addTabs() {
+    chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
-    if( request.method == 'addTabManually') {
-        var tabManuallyAddedResponse = function (response) {
-            if (response.status == 200) {
-                sendResponse({url: currentUrl, title: document.title, tabQueueLen: response.queueLen});
-            }
-        };
-        addTabToSessionQueue(tabManuallyAddedResponse);
-    }
-    //TODO unload doesn't differentiate between things like closing tab and refresh, and seems no available way to check
-    // gonna decide if i want a start/stop or just start, where you click the button and enter the name and exit chrome, it then creates new session
-    // if issue with saving new session try and save to local storage under name and create session on next open tab. Otherwise would have to do it bitch ass way of
-    // saving every tab and deleting it when exited normally, and delete all tabs that were open when chrome was closed ( assuming the user follow steps to save them)
-    //TODO want to broadcast these 2 messages to every open tab, unlike addTabManually
-    else if(request.method == 'startAddTabOnDelete'){
-        window.addEventListener("unload", butImNotAWraper);
-    }
-    else if(request.method == 'stopAddTabOnDelete'){
-        window.removeEventListener('unload', butImNotAWraper);
-    }
+        if (request.method == 'addTabManually') {
+            console.log("addTabs");
+            addTabToSessionQueueAndResponse()
+        }
 
-});
+    });
+}
+addTabs();
 
 
+function tabOnClosing(responseFunc){
+    console.log("TabOnClosing");
+    var query = {method: "isAddTabOnDeleteActive"};
+    chrome.runtime.sendMessage(query, function(response){
+        console.log(response);
+        if( response.status == 200 && response.isSet ) {
+            // maybe curry addTabToSessionQueue w/ same responseFunc as the 'addTabManually' above
+            responseFunc();
+    //        return true;
+        }
+    });
+    return true;
+}
+
+var addTabOnClosing = function(){
+    console.log('addTabOnCLosing');
+    tabOnClosing( addTabToSessionQueueAndResponse)
+};
+
+window.addEventListener("unload", addTabOnClosing);
 //window.addEventListener("unload", butImNotAWraper);
 
 
